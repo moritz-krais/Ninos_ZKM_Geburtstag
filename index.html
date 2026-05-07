@@ -54,8 +54,7 @@
     .switch-wrap {
       position: relative; z-index: 2;
       display: flex; align-items: center; justify-content: center;
-      width: 700px;
-      transform-origin: center center;
+      width: min(96vw, 700px);
       animation: float 4s ease-in-out infinite;
     }
     @keyframes float {
@@ -186,8 +185,23 @@
     }
 
     /* Keyboard */
-    .keyboard { display: flex; flex-direction: column; gap: 5px; margin-top: auto; }
-    .key-row   { display: flex; gap: 5px; justify-content: center; }
+    .keyboard {
+      display: flex; flex-direction: column; gap: 5px;
+      margin-top: auto;
+      flex: 1; min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin; scrollbar-color: var(--cyan) transparent;
+    }
+    .keyboard::-webkit-scrollbar { width: 3px; }
+    .keyboard::-webkit-scrollbar-track { background: transparent; }
+    .keyboard::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 2px; }
+    .key-row { display: flex; gap: 5px; justify-content: center; }
+
+    /* Narrow screens: collapse rows, let all keys flow freely */
+    @media (max-width: 500px) {
+      .keyboard { flex-direction: row; flex-wrap: wrap; justify-content: center; align-content: flex-start; }
+      .key-row { display: contents; }
+    }
     .key {
       min-width: 28px; height: 28px; padding: 0 2px;
       border: 2px solid #252540;
@@ -399,7 +413,7 @@
     /* Content hidden during boot, snaps to full height then fades in */
     #bootContent {
       width: 100%;
-      flex: 1;
+      flex: 1; min-height: 0;
       display: flex; flex-direction: column; align-items: center; gap: 6px;
       max-height: 0; overflow: hidden;
       opacity: 0;
@@ -1015,23 +1029,6 @@
     void el.offsetWidth;
     el.classList.add('stick-spinning');
     setTimeout(() => el.classList.remove('stick-spinning'), 400);
-  }
-
-  // ── Responsive scaling: fit switch into viewport ──
-  function scaleSwitch() {
-    const sw = document.getElementById('switchWrap');
-    const vw = window.innerWidth;
-    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    const designW = 700;
-    const scaleX = (vw * 0.96) / designW;
-    const scaleY = (vh * 0.95) / sw.offsetHeight;
-    const s = Math.min(1, scaleX, scaleY);
-    sw.style.transform = `scale(${s})`;
-  }
-  scaleSwitch();
-  window.addEventListener('resize', scaleSwitch);
-  if (window.visualViewport) {
-    window.visualViewport.addEventListener('resize', scaleSwitch);
   }
 </script>
 </body>
