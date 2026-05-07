@@ -713,11 +713,17 @@
         logo.style.objectFit       = 'contain';
 
         // Fade bootContent in right after snap
-        bc.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; opacity:0; pointer-events:auto; max-height:1000px; overflow:visible;';
-        // Force reflow before starting transition
-        void bc.offsetHeight;
-        bc.style.transition = 'opacity 0.5s ease';
-        bc.style.opacity    = '1';
+        // If levels were requested before boot, show levels instead
+        if (levelsOpen) {
+          bc.style.cssText = 'display:none; width:100%;';
+          document.getElementById('levelsView').classList.add('visible');
+          document.getElementById('lvl-btn').classList.add('active');
+        } else {
+          bc.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; opacity:0; pointer-events:auto; max-height:1000px; overflow:visible;';
+          void bc.offsetHeight;
+          bc.style.transition = 'opacity 0.5s ease';
+          bc.style.opacity    = '1';
+        }
       }, 780);
     });
   }
@@ -921,19 +927,23 @@
   // ── Levels toggle ──
   let levelsOpen = false;
   function toggleLevels() {
-    // Only allow if boot animation has played
-    if (!bootAnimationStarted) { triggerBootAnimation(); return; }
     levelsOpen = !levelsOpen;
+    const btn = document.getElementById('lvl-btn');
+    // If boot animation hasn't played, trigger it (levels will show after animation)
+    if (!bootAnimationStarted) {
+      btn.classList.toggle('active', levelsOpen);
+      triggerBootAnimation();
+      return;
+    }
     const lv = document.getElementById('levelsView');
     const bc2 = document.getElementById('bootContent');
-    const btn = document.getElementById('lvl-btn');
     if (levelsOpen) {
       bc2.style.display = 'none';
       lv.classList.add('visible');
       btn.classList.add('active');
     } else {
       lv.classList.remove('visible');
-      bc2.style.display = '';
+      bc2.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; opacity:1; pointer-events:auto; max-height:1000px; overflow:visible;';
       btn.classList.remove('active');
     }
   }
