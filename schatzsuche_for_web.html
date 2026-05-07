@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Ninos Schatzsuche 🎮</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Nunito:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cyan:   #00c8ff;
+      --red:    #ff3b30;
+      --yellow: #ffe600;
+      --green:  #39d353;
+      --purple: #c84bff;
+      --pink:   #ff4ecd;
+      --bg:     #0a0a14;
+      --panel:  #12122a;
+      --border: #2a2a50;
+      --white:  #f0f0ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; width: 100%;
+      background: var(--bg);
+      font-family: 'Nunito', sans-serif;
+      color: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Grid bg */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(0,200,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,200,255,.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* Falling blocks */
+    .blocks-bg { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+    .blk {
+      position: absolute; top: -40px;
+      border-radius: 3px;
+      animation: fall linear infinite;
+      opacity: .16;
+    }
+    @keyframes fall { to { transform: translateY(110vh) rotate(180deg); opacity: 0; } }
+
+    /* Switch wrapper */
+    .switch-wrap {
+      position: relative; z-index: 2;
+      display: flex; align-items: center; justify-content: center;
+      width: min(96vw, 700px);
+      animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-10px); }
+    }
+
+    /* Joy-Cons */
+    .joycon-l, .joycon-r {
+      flex-shrink: 0;
+      width: 66px;
+      align-self: stretch;   /* match screen height automatically */
+      display: flex; flex-direction: column;
+      align-items: center; padding: 14px 0; gap: 10px;
+    }
+    .joycon-l {
+      background: linear-gradient(160deg, #00d4ff, #0088cc);
+      border-radius: 38px 8px 8px 38px;
+      box-shadow: -4px 0 20px rgba(0,200,255,.45);
+    }
+    .joycon-r {
+      background: linear-gradient(160deg, #ff4433, #cc1100);
+      border-radius: 8px 38px 38px 8px;
+      box-shadow: 4px 0 20px rgba(255,60,48,.45);
+    }
+    .stick {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #555, #111);
+      border: 3px solid rgba(255,255,255,.2);
+    }
+    .dpad { width: 42px; height: 42px; position: relative; }
+    .dpad::before, .dpad::after {
+      content: ''; position: absolute;
+      background: #0066aa; border-radius: 3px;
+    }
+    .dpad::before { width: 14px; height: 42px; left: 14px; top: 0; }
+    .dpad::after  { width: 42px; height: 14px; left: 0; top: 14px; }
+    .jc-dots { display: flex; gap: 7px; margin-top: 4px; }
+    .jc-dot {
+      width: 13px; height: 13px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.3);
+    }
+    .home-btn {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.25), rgba(0,0,0,.3));
+      border: 2px solid rgba(255,255,255,.25);
+      cursor: pointer;
+      margin-top: auto;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      transition: transform .1s, box-shadow .1s;
+    }
+    .home-btn:hover { box-shadow: 0 0 8px rgba(255,255,255,.4); }
+    .home-btn:active { transform: scale(.85); }
+    .face-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .fb {
+      width: 20px; height: 20px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 900; color: rgba(0,0,0,.7);
+      box-shadow: 0 3px 0 rgba(0,0,0,.35);
+    }
+    .fb.a { background: #ff4444; }
+    .fb.b { background: #ffcc00; }
+    .fb.x { background: #4488ff; }
+    .fb.y { background: #44cc44; }
+
+    /* Screen */
+    .screen {
+      flex: 1;
+      height: 320px;        /* fixed height → Joy-Cons stretch to match */
+      background: #050510;
+      border: 5px solid #1a1a30;
+      border-radius: 10px;
+      padding: 10px 12px;
+      text-align: center;
+      display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+      gap: 6px;
+      position: relative; overflow: hidden;
+    }
+    .screen::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(0,200,255,.06), transparent 65%);
+      pointer-events: none;
+    }
+    .screen::after {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none; z-index: 100;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 3px,
+        rgba(0,0,0,.15) 3px, rgba(0,0,0,.15) 4px
+      );
+      border-radius: 5px;
+    }
+
+    /* Title */
+    .game-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(.5rem, 2.6vw, .9rem);
+      line-height: 2;
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 1px;
+    }
+    .game-title span { display: inline-block; }
+
+    .subtitle {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(.35rem, 1.5vw, .55rem);
+      color: #666; line-height: 1.8;
+    }
+
+    /* Slots */
+    #pin-display { display: flex; gap: 5px; justify-content: center; flex-wrap: wrap; margin-top: auto; }
+    .slot {
+      width: 28px; height: 32px;
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      background: #0a0a20;
+      font-family: 'Press Start 2P', monospace;
+      font-size: .72rem;
+      color: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      text-transform: uppercase;
+      transition: border-color .15s, box-shadow .15s, transform .1s;
+    }
+    .slot.filled {
+      transform: scale(1.06);
+    }
+
+    /* Keyboard */
+    .keyboard { display: flex; flex-direction: column; gap: 5px; margin-top: auto; }
+    .key-row   { display: flex; gap: 5px; justify-content: center; }
+    .key {
+      min-width: 28px; height: 28px; padding: 0 2px;
+      border: 2px solid #252540;
+      border-radius: 3px;
+      background: linear-gradient(160deg, #1c1c38, #10102a);
+      color: var(--white);
+      font-family: 'Press Start 2P', monospace;
+      font-size: .6rem;
+      cursor: pointer;
+      box-shadow: 0 2px 0 #05050f;
+      transition: transform .07s, box-shadow .07s, border-color .1s, color .1s;
+      display: flex; align-items: center; justify-content: center;
+      user-select: none;
+    }
+    .key:hover  { border-color: var(--cyan); color: var(--cyan); }
+    .key:active { transform: translateY(2px); box-shadow: 0 1px 0 #05050f; }
+    .key.wide   { min-width: 42px; }
+    .key.extra-wide { min-width: 100px; }
+    .key.del    { border-color: #552020; color: var(--red); }
+
+    /* Check button */
+    #check-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: .55rem;
+      padding: 8px 18px;
+      background: linear-gradient(135deg, var(--green), #1a8830);
+      color: #000;
+      border: none; border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 3px 0 #0a4018, 0 0 14px rgba(57,211,83,.3);
+      transition: transform .08s, box-shadow .08s;
+      letter-spacing: .03em;
+    }
+    #check-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #0a4018; }
+
+    /* Feedback */
+    #feedback {
+      font-family: 'Press Start 2P', monospace;
+      font-size: .38rem; line-height: 1.6;
+      min-height: 14px;
+      transition: opacity .2s; text-align: center;
+    }
+    #feedback.error  { color: var(--red); }
+    #feedback.hidden { opacity: 0; }
+
+    /* Shake */
+    @keyframes shake {
+      0%,100% { transform: translateY(-10px) translateX(0); }
+      20%      { transform: translateY(-10px) translateX(-9px); }
+      40%      { transform: translateY(-10px) translateX(9px); }
+      60%      { transform: translateY(-10px) translateX(-5px); }
+      80%      { transform: translateY(-10px) translateX(5px); }
+    }
+    .shake { animation: shake .42s ease !important; }
+
+    /* Lives */
+    .lives { display: flex; gap: 6px; align-items: center; }
+    .heart { font-size: .9rem; animation: pulse-heart 1.3s ease-in-out infinite; }
+    .heart:nth-child(2) { animation-delay: .2s; }
+    .heart:nth-child(3) { animation-delay: .4s; }
+    @keyframes pulse-heart { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+
+    /* Video overlay */
+    #video-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(10, 10, 20, 0.85);
+      flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    }
+    #video-overlay.active { display: flex; }
+    #overlay-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(.6rem, 3vw, .95rem);
+      text-align: center; line-height: 2.2;
+      background: linear-gradient(90deg, var(--cyan), var(--yellow), var(--pink), var(--cyan));
+      background-size: 200%;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: shimmer 2s linear infinite;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+    #video-container {
+      position: relative;
+      width: 100%; max-width: 800px;
+      height: 65vh;
+      border: 3px solid var(--cyan);
+      border-radius: 8px;
+      box-shadow: 0 0 40px rgba(0,200,255,.4);
+      overflow: hidden;
+      background: #000;
+    }
+    .treasure-video {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #000;
+      object-fit: contain;
+    }
+    #video-2 {
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+    }
+    #video-2.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #video-buttons {
+      display: flex; gap: 16px;
+    }
+    #close-video, #replay-video {
+      font-family: 'Press Start 2P', monospace;
+      font-size: .6rem; padding: 11px 26px;
+      color: #fff; border: none; border-radius: 5px;
+      cursor: pointer;
+    }
+    #close-video {
+      background: linear-gradient(135deg, var(--red), #990000);
+      box-shadow: 0 4px 0 #400000;
+    }
+    #replay-video {
+      display: none;
+      background: linear-gradient(135deg, var(--cyan), #0066aa);
+      box-shadow: 0 4px 0 #003366;
+    }
+    #replay-video.visible { display: block; }
+    /* Confetti */
+    .confetti-piece {
+      position: fixed; pointer-events: none; z-index: 550;
+      animation: cffall linear forwards;
+    }
+    @keyframes cffall {
+      0%   { opacity: 1; transform: translateY(-30px) rotate(0deg) scale(1); }
+      100% { opacity: 0; transform: translateY(105vh) rotate(720deg) scale(.4); }
+    }
+
+    /* D-Pad nudge animations */
+    @keyframes nudge-up    { 0%,100%{transform:translateY(0)} 35%{transform:translateY(-20px)} 65%{transform:translateY(-5px)} }
+    @keyframes nudge-down  { 0%,100%{transform:translateY(0)} 35%{transform:translateY(20px)}  65%{transform:translateY(5px)}  }
+    @keyframes nudge-left  { 0%,100%{transform:translateY(0) translateX(0)} 35%{transform:translateY(0) translateX(-20px)} 65%{transform:translateY(0) translateX(-5px)} }
+    @keyframes nudge-right { 0%,100%{transform:translateY(0) translateX(0)} 35%{transform:translateY(0) translateX(20px)}  65%{transform:translateY(0) translateX(5px)}  }
+    .nudge-up    { animation: nudge-up    .4s cubic-bezier(.36,.07,.19,.97) !important; }
+    .nudge-down  { animation: nudge-down  .4s cubic-bezier(.36,.07,.19,.97) !important; }
+    .nudge-left  { animation: nudge-left  .4s cubic-bezier(.36,.07,.19,.97) !important; }
+    .nudge-right { animation: nudge-right .4s cubic-bezier(.36,.07,.19,.97) !important; }
+
+    /* D-pad invisible hit zones */
+    .dpad-btn {
+      position: absolute; background: transparent; border: none;
+      cursor: pointer; z-index: 10; border-radius: 2px;
+    }
+    .dpad-btn.up    { width: 14px; height: 16px; top: 0;    left: 14px; }
+    .dpad-btn.down  { width: 14px; height: 16px; bottom: 0; left: 14px; }
+    .dpad-btn.left  { width: 16px; height: 14px; top: 14px; left: 0;   }
+    .dpad-btn.right { width: 16px; height: 14px; top: 14px; right: 0;  }
+    .dpad-btn:active { filter: brightness(2); }
+
+    /* Stick spin */
+    @keyframes stick-spin { 0%{transform:rotate(0) scale(1)} 40%{transform:rotate(200deg) scale(.8)} 100%{transform:rotate(360deg) scale(1)} }
+    .stick-spinning { animation: stick-spin .38s ease !important; }
+    .stick { cursor: pointer; }
+
+    /* Face button press + ripple */
+    .fb { cursor: pointer; transition: transform .1s, box-shadow .1s; }
+    .fb:active { transform: scale(.72) !important; }
+    .fb-ripple {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 300;
+      transform: translate(-50%, -50%) scale(0);
+      animation: fb-burst .55s ease-out forwards;
+    }
+    @keyframes fb-burst {
+      0%   { width: 10px;  height: 10px;  opacity: .85; transform: translate(-50%,-50%) scale(1); }
+      60%  { opacity: .5; }
+      100% { width: 90px;  height: 90px;  opacity: 0;   transform: translate(-50%,-50%) scale(1); }
+    }
+
+    /* Logo boot sequence */
+    #logo-img {
+      width: 92%;
+      display: block;
+      margin: 0 auto;
+      flex-shrink: 0;
+      filter: drop-shadow(0 0 10px rgba(255,200,0,.9)) drop-shadow(0 0 22px rgba(0,200,255,.6));
+      cursor: pointer;
+    }
+
+    /* Tap hint below logo */
+    #tap-hint {
+      font-family: 'Press Start 2P', monospace;
+      font-size: .8rem;
+      color: rgba(255,255,255,.4);
+      position: absolute;
+      bottom: 16px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      animation: pulse-hint 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+    @keyframes pulse-hint {
+      0%, 100% { opacity: .3; transform: scale(1); }
+      50% { opacity: .6; transform: scale(1.03); }
+    }
+    #tap-hint.hidden { display: none; }
+
+    /* Content hidden during boot, snaps to full height then fades in */
+    #bootContent {
+      width: 100%;
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      max-height: 0; overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.5s ease, max-height 0.01s ease;
+      pointer-events: none;
+    }
+    #bootContent.revealed {
+      max-height: 1000px; overflow: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body>
+
+<div class="blocks-bg" id="blocksBg"></div>
+
+<div class="switch-wrap" id="switchWrap">
+
+  <!-- Left Joy-Con (Cyan) -->
+  <div class="joycon-l">
+    <div class="stick" onclick="stickSpin(this)"></div>
+    <div class="dpad" id="dpad">
+      <button class="dpad-btn up"    onclick="nudge('up')"></button>
+      <button class="dpad-btn down"  onclick="nudge('down')"></button>
+      <button class="dpad-btn left"  onclick="nudge('left')"></button>
+      <button class="dpad-btn right" onclick="nudge('right')"></button>
+    </div>
+    <div class="jc-dots">
+      <div class="jc-dot" style="background:#0066aa"></div>
+      <div class="jc-dot" style="background:#0066aa"></div>
+    </div>
+    <button class="home-btn" onclick="restartBootSequence()">⌂</button>
+  </div>
+
+  <!-- Screen -->
+  <div class="screen">
+    <img id="logo-img" src="logo.png" alt="Ninos Geburtstag" />
+    <div id="tap-hint">ANTIPPEN ZUM STARTEN</div>
+    <div id="bootContent">
+      <div id="pin-display"></div>
+      <div class="keyboard" id="keyboard"></div>
+      <button id="check-btn" onclick="checkPassword()">▶ START</button>
+      <div id="feedback" class="hidden"></div>
+    </div>
+  </div>
+
+  <!-- Right Joy-Con (Red) -->
+  <div class="joycon-r">
+    <div class="jc-dots">
+      <div class="jc-dot" style="background:#aa1100"></div>
+      <div class="jc-dot" style="background:#aa1100"></div>
+    </div>
+    <div class="face-btns">
+      <div></div>        <div class="fb x" id="fb-x" onclick="fbPress(this,'#4488ff')">X</div>
+      <div class="fb y" id="fb-y" onclick="fbPress(this,'#44cc44')">Y</div><div class="fb a" id="fb-a" onclick="fbPress(this,'#ff4444')">A</div>
+      <div></div>        <div class="fb b" id="fb-b" onclick="fbPress(this,'#ffcc00')">B</div>
+    </div>
+    <div class="stick" style="margin-top:10px" onclick="stickSpin(this)"></div>
+    <button class="home-btn" onclick="restartBootSequence()">⌂</button>
+  </div>
+</div>
+
+<!-- Video overlay -->
+<div id="video-overlay">
+  <div id="overlay-title">🎮 Super, ihr habt es geschafft! Folgt dem Pfeil 🎮</div>
+  <div id="video-container">
+    <video id="video-1" class="treasure-video" controls autoplay playsinline>
+      <source src="video1.mp4" type="video/mp4" />
+      Dein Browser kann dieses Video nicht abspielen.
+    </video>
+    <video id="video-2" class="treasure-video" playsinline preload="auto">
+      <source src="video2.mp4" type="video/mp4" />
+    </video>
+  </div>
+  <div id="video-buttons">
+    <button id="close-video" onclick="closeVideo()">✖ ZURÜCK</button>
+    <button id="replay-video" onclick="replayVideos()">↻ NOCHMAL</button>
+  </div>
+</div>
+
+<script>
+  // Video elements
+  const video1 = document.getElementById('video-1');
+  const video2 = document.getElementById('video-2');
+  let currentVideo = 1;
+  let crossfadeStarted = false;
+
+  // Monitor video 1 time to start crossfade 0.5s before end
+  video1.addEventListener('timeupdate', function() {
+    if (!crossfadeStarted && video1.duration && video1.currentTime >= video1.duration - 0.5) {
+      crossfadeStarted = true;
+      // Start video 2 and fade it in
+      video2.currentTime = 0;
+      video2.play();
+      video2.classList.add('active');
+      video2.controls = true;
+    }
+  });
+
+  // When video 1 ends, make sure video 2 is fully active
+  video1.addEventListener('ended', function() {
+    currentVideo = 2;
+    video1.style.visibility = 'hidden';
+  });
+
+  // When video 2 ends, show replay button
+  video2.addEventListener('ended', function() {
+    document.getElementById('replay-video').classList.add('visible');
+  });
+
+  // Replay videos from the beginning
+  function replayVideos() {
+    currentVideo = 1;
+    crossfadeStarted = false;
+    document.getElementById('replay-video').classList.remove('visible');
+    
+    // Reset video 2
+    video2.pause();
+    video2.currentTime = 0;
+    video2.classList.remove('active');
+    video2.controls = false;
+    
+    // Reset and play video 1
+    video1.style.visibility = 'visible';
+    video1.currentTime = 0;
+    video1.play();
+  }
+
+  // ── Boot sequence ──────────────────────────────────────────────────────────
+  const logo     = document.getElementById('logo-img');
+  const screenEl = document.querySelector('.screen');
+  const bc       = document.getElementById('bootContent');
+  const tapHint  = document.getElementById('tap-hint');
+
+  // Store original logo height (before any transforms)
+  let originalLogoH = null;
+  let bootAnimationStarted = false;
+
+  function initLogoPosition() {
+    // Hide bootContent
+    bc.style.cssText = 'display:none; width:100%;';
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      // Get logo height (use stored value if available, otherwise measure)
+      const logoH   = originalLogoH || logo.offsetHeight;
+      if (!originalLogoH) originalLogoH = logoH;
+
+      const screenH = screenEl.offsetHeight;
+      const padTop  = 10; // matches screen padding-top
+
+      // Logo natural top (flex-start) = padTop
+      // We want logo center = screen center → translate it down
+      const logoCenterNatural = padTop + logoH / 2;
+      const screenCenter      = screenH / 2;
+      const offsetY           = screenCenter - logoCenterNatural;
+
+      // Snap to centered position instantly
+      logo.style.transition      = 'none';
+      logo.style.transformOrigin = 'top center';
+      logo.style.transform       = `translateY(${offsetY}px) scale(1)`;
+    }));
+  }
+
+  function triggerBootAnimation() {
+    if (bootAnimationStarted) return;
+    bootAnimationStarted = true;
+
+    // Hide the tap hint
+    tapHint.classList.add('hidden');
+
+    requestAnimationFrame(() => {
+      const logoH = originalLogoH || logo.offsetHeight;
+      const targetH     = 42;
+      const targetScale = targetH / logoH;
+
+      logo.style.transition = 'transform 0.75s cubic-bezier(0.34,1.3,0.64,1), filter 0.75s ease';
+      logo.style.transform  = `translateY(0px) scale(${targetScale})`;
+      logo.style.filter     = 'drop-shadow(0 0 3px rgba(255,200,0,.35))';
+
+      // Once animation is done: replace visual scale with real layout constraint
+      setTimeout(() => {
+        logo.style.transition      = 'none';
+        logo.style.transform       = '';
+        logo.style.transformOrigin = '';
+        logo.style.maxHeight       = targetH + 'px';
+        logo.style.objectFit       = 'contain';
+
+        // Fade bootContent in right after snap
+        bc.style.cssText = 'display:flex; flex-direction:column; align-items:center; gap:6px; width:100%; opacity:0; pointer-events:auto; max-height:1000px; overflow:visible;';
+        // Force reflow before starting transition
+        void bc.offsetHeight;
+        bc.style.transition = 'opacity 0.5s ease';
+        bc.style.opacity    = '1';
+      }, 780);
+    });
+  }
+
+  function runBootSequence() {
+    // Reset logo styles
+    logo.style.transition      = 'none';
+    logo.style.transform       = '';
+    logo.style.transformOrigin = '';
+    logo.style.maxHeight       = '';
+    logo.style.objectFit       = '';
+    logo.style.filter          = 'drop-shadow(0 0 10px rgba(255,200,0,.9)) drop-shadow(0 0 22px rgba(0,200,255,.6))';
+
+    // Reset boot state
+    bootAnimationStarted = false;
+    tapHint.classList.remove('hidden');
+
+    // Position logo centered and wait for interaction
+    initLogoPosition();
+  }
+
+  function restartBootSequence() {
+    // Close video overlay if open
+    closeVideo();
+    // Clear any entered code
+    current = '';
+    updateSlots();
+    clearFeedback();
+    // Run the boot animation
+    runBootSequence();
+  }
+
+  // Set up interaction listeners (excluding home buttons)
+  function setupInteractionListeners() {
+    // Screen tap
+    screenEl.addEventListener('click', triggerBootAnimation);
+    
+    // Joy-Con controls (sticks, d-pad, face buttons) - they trigger animation AND their normal effect
+    document.querySelectorAll('.stick').forEach(el => {
+      el.addEventListener('click', triggerBootAnimation);
+    });
+    document.querySelectorAll('.dpad-btn').forEach(el => {
+      el.addEventListener('click', triggerBootAnimation);
+    });
+    document.querySelectorAll('.fb').forEach(el => {
+      el.addEventListener('click', triggerBootAnimation);
+    });
+  }
+
+  // Run on initial load - wait for logo to load first
+  if (logo.complete) {
+    runBootSequence();
+    setupInteractionListeners();
+  } else {
+    logo.onload = () => {
+      runBootSequence();
+      setupInteractionListeners();
+    };
+  }
+
+  // ══════════════════════════════════════════
+  //  ⚙️  PASSWORT HIER EINSTELLEN:
+  // ══════════════════════════════════════════
+  const SECRET = "NINO7ZKM";
+  // ══════════════════════════════════════════
+
+  // Slot hint colors: NINO=blau(0-3), 7=gelb(4), ZKM=rot(5-7)
+  const slotColors = [
+    { bg:'rgba(0,140,255,.14)', border:'rgba(0,140,255,.38)', text:'rgba(200,230,255,1)' },
+    { bg:'rgba(0,140,255,.14)', border:'rgba(0,140,255,.38)', text:'rgba(200,230,255,1)' },
+    { bg:'rgba(0,140,255,.14)', border:'rgba(0,140,255,.38)', text:'rgba(200,230,255,1)' },
+    { bg:'rgba(0,140,255,.14)', border:'rgba(0,140,255,.38)', text:'rgba(200,230,255,1)' },
+    { bg:'rgba(255,215,0,.14)', border:'rgba(255,215,0,.50)', text:'rgba(255,252,210,1)' },
+    { bg:'rgba(255,50,40,.14)', border:'rgba(255,50,40,.38)', text:'rgba(255,210,205,1)' },
+    { bg:'rgba(255,50,40,.14)', border:'rgba(255,50,40,.38)', text:'rgba(255,210,205,1)' },
+    { bg:'rgba(255,50,40,.14)', border:'rgba(255,50,40,.38)', text:'rgba(255,210,205,1)' },
+  ];
+
+  // Slots
+  const maxLen = SECRET.length;
+  let current = "";
+  const pinDisplay = document.getElementById('pin-display');
+  for (let i = 0; i < maxLen; i++) {
+    const s = document.createElement('div');
+    s.className = 'slot'; s.id = 'slot' + i;
+    // Subtle hint color as permanent background
+    s.style.background = slotColors[i].bg;
+    s.style.borderColor = slotColors[i].border;
+    pinDisplay.appendChild(s);
+  }
+
+  // Keyboard
+  const rows = [
+    ['1','2','3','4','5','6','7','8','9','0'],
+    ['A','B','C','D','E','F','G','H','I','J'],
+    ['K','L','M','N','O','P','Q','R','S','T'],
+    ['U','V','W','X','Y','Z','⌫']
+  ];
+  const kb = document.getElementById('keyboard');
+  rows.forEach(row => {
+    const r = document.createElement('div'); r.className = 'key-row';
+    row.forEach(k => {
+      const btn = document.createElement('button');
+      btn.textContent = k;
+      let cls = 'key';
+      if (k === '⌫') cls += ' extra-wide del';
+      btn.className = cls;
+      btn.addEventListener('click', () => handleKey(k));
+      r.appendChild(btn);
+    });
+    kb.appendChild(r);
+  });
+
+  function handleKey(k) {
+    clearFeedback();
+    if (k === '⌫')       { current = current.slice(0,-1); }
+    else if (current.length < maxLen) { current += k; }
+    updateSlots();
+  }
+
+  document.addEventListener('keydown', e => {
+    clearFeedback();
+    if (e.key === 'Backspace') { current = current.slice(0,-1); updateSlots(); }
+    else if (e.key === 'Enter') { checkPassword(); }
+    else if (/^[a-zA-Z0-9]$/.test(e.key) && current.length < maxLen) {
+      current += e.key.toUpperCase(); updateSlots();
+    }
+  });
+
+  function updateSlots() {
+    for (let i = 0; i < maxLen; i++) {
+      const s = document.getElementById('slot' + i);
+      s.textContent = current[i] || '';
+      const filled = !!current[i];
+      s.classList.toggle('filled', filled);
+      // Keep hint color, just brighten when filled
+      if (filled) {
+        const c = slotColors[i];
+        s.style.background = c.bg.replace(/[\d.]+\)$/, '0.28)');
+        s.style.borderColor = c.border.replace(/[\d.]+\)$/, '0.75)');
+        s.style.boxShadow = '0 0 10px ' + c.border;
+        s.style.color = c.text;
+      } else {
+        s.style.background = slotColors[i].bg;
+        s.style.borderColor = slotColors[i].border;
+        s.style.boxShadow = '';
+        s.style.color = '';
+      }
+    }
+  }
+
+  function checkPassword() {
+    if (current.toUpperCase() === SECRET.toUpperCase()) {
+      spawnConfetti();
+      document.getElementById('switchWrap').style.animation = 'none';
+      setTimeout(() => {
+        document.getElementById('video-overlay').classList.add('active');
+        // Reset and play video 1
+        crossfadeStarted = false;
+        video1.style.visibility = 'visible';
+        video1.currentTime = 0;
+        video1.play();
+      }, 700);
+    } else {
+      const fb = document.getElementById('feedback');
+      fb.textContent = '✖ FALSCHER CODE – WEITER PROBIEREN!';
+      fb.className = 'error';
+      const sw = document.getElementById('switchWrap');
+      sw.classList.add('shake');
+      setTimeout(() => sw.classList.remove('shake'), 450);
+      current = ''; updateSlots();
+    }
+  }
+
+  function clearFeedback() {
+    document.getElementById('feedback').className = 'hidden';
+  }
+
+  function closeVideo() {
+    document.getElementById('video-overlay').classList.remove('active');
+    document.getElementById('switchWrap').style.animation = '';
+    // Hide replay button and reset videos
+    document.getElementById('replay-video').classList.remove('visible');
+    currentVideo = 1;
+    crossfadeStarted = false;
+    
+    // Pause and reset both videos
+    video1.pause();
+    video1.currentTime = 0;
+    video1.style.visibility = 'visible';
+    
+    video2.pause();
+    video2.currentTime = 0;
+    video2.classList.remove('active');
+    video2.controls = false;
+  }
+
+  // Confetti
+  function spawnConfetti() {
+    const colors = ['#00c8ff','#ff3b30','#ffe600','#39d353','#c84bff','#ff4ecd','#ff8c00'];
+    for (let i = 0; i < 100; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti-piece';
+      const size = 8 + Math.random() * 12;
+      c.style.cssText = `
+        left:${Math.random()*100}vw; top:-20px;
+        width:${size}px; height:${size}px;
+        border-radius:${Math.random()>.5?'50%':'2px'};
+        background:${colors[i%colors.length]};
+        animation-delay:${Math.random()*.8}s;
+        animation-duration:${1.4+Math.random()*1}s;
+      `;
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 2800);
+    }
+  }
+
+  // Falling pixel blocks
+  const blockColors = ['#ff3b30','#ff8c00','#ffe600','#39d353','#00c8ff','#c84bff','#ff4ecd'];
+  const bgEl = document.getElementById('blocksBg');
+  for (let i = 0; i < 30; i++) {
+    const b = document.createElement('div');
+    b.className = 'blk';
+    const size = 14 + Math.random() * 22;
+    b.style.cssText = `
+      left:${Math.random()*100}vw;
+      width:${size}px; height:${size}px;
+      background:${blockColors[i%blockColors.length]};
+      animation-duration:${4+Math.random()*9}s;
+      animation-delay:${-Math.random()*12}s;
+    `;
+    bgEl.appendChild(b);
+  }
+
+  // ── D-Pad nudge ──
+  function nudge(dir) {
+    const sw = document.getElementById('switchWrap');
+    ['nudge-up','nudge-down','nudge-left','nudge-right'].forEach(c => sw.classList.remove(c));
+    void sw.offsetWidth; // force reflow so re-trigger works
+    sw.classList.add('nudge-' + dir);
+    setTimeout(() => sw.classList.remove('nudge-' + dir), 420);
+  }
+
+  // ── Face button ripple ──
+  function fbPress(el, color) {
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width  / 2;
+    const cy = rect.top  + rect.height / 2;
+    const r = document.createElement('div');
+    r.className = 'fb-ripple';
+    r.style.cssText = 'left:' + cx + 'px; top:' + cy + 'px; background:' + color + '; box-shadow: 0 0 18px ' + color + ';';
+    document.body.appendChild(r);
+    setTimeout(() => r.remove(), 600);
+    // punch-press the button itself
+    el.style.transform = 'scale(.7)';
+    setTimeout(() => el.style.transform = '', 140);
+  }
+
+  // ── Analog stick spin ──
+  function stickSpin(el) {
+    el.classList.remove('stick-spinning');
+    void el.offsetWidth;
+    el.classList.add('stick-spinning');
+    setTimeout(() => el.classList.remove('stick-spinning'), 400);
+  }
+</script>
+</body>
+</html>
