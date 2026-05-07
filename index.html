@@ -411,6 +411,89 @@
       opacity: 1;
       pointer-events: auto;
     }
+
+    /* Level list view */
+    .lvl-btn {
+      width: 38px; height: 18px;
+      border-radius: 3px;
+      background: linear-gradient(160deg, #005580, #003355);
+      border: 2px solid rgba(255,255,255,.25);
+      color: rgba(255,255,255,.8);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 5px;
+      cursor: pointer;
+      letter-spacing: .5px;
+      transition: transform .1s, box-shadow .1s;
+    }
+    .lvl-btn:hover { box-shadow: 0 0 8px rgba(0,200,255,.5); }
+    .lvl-btn:active { transform: scale(.88); }
+    .lvl-btn.active { background: linear-gradient(160deg, #0099dd, #0066aa); border-color: rgba(255,255,255,.6); }
+
+    #levelsView {
+      display: none;
+      width: 100%;
+      flex: 1;
+      flex-direction: column;
+      gap: 0;
+      overflow: hidden;
+    }
+    #levelsView.visible {
+      display: flex;
+    }
+    .levels-header {
+      font-family: 'Press Start 2P', monospace;
+      font-size: .5rem;
+      color: var(--cyan);
+      padding: 4px 0 6px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .levels-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0 4px 8px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--cyan) transparent;
+    }
+    .levels-scroll::-webkit-scrollbar { width: 4px; }
+    .levels-scroll::-webkit-scrollbar-track { background: transparent; }
+    .levels-scroll::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 2px; }
+
+    .level-card {
+      background: rgba(0,200,255,.06);
+      border: 1px solid rgba(0,200,255,.15);
+      border-radius: 5px;
+      padding: 8px 8px;
+      margin-bottom: 6px;
+      text-align: left;
+    }
+    .level-card-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: .4rem;
+      color: var(--cyan);
+      margin-bottom: 4px;
+      line-height: 1.6;
+    }
+    .level-card-desc {
+      font-family: 'Nunito', sans-serif;
+      font-size: .65rem;
+      color: rgba(240,240,255,.75);
+      line-height: 1.5;
+    }
+    .levels-back-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: .4rem;
+      padding: 6px 14px;
+      background: linear-gradient(135deg, var(--cyan), #0066aa);
+      color: #000;
+      border: none; border-radius: 3px;
+      cursor: pointer;
+      margin-top: 6px;
+      flex-shrink: 0;
+      align-self: center;
+    }
+    .levels-back-btn:active { transform: translateY(2px); }
   </style>
 </head>
 <body>
@@ -432,6 +515,7 @@
       <div class="jc-dot" style="background:#0066aa"></div>
       <div class="jc-dot" style="background:#0066aa"></div>
     </div>
+    <button class="lvl-btn" id="lvl-btn" onclick="toggleLevels()">LVL</button>
     <button class="home-btn" onclick="restartBootSequence()">⌂</button>
   </div>
 
@@ -444,6 +528,46 @@
       <div class="keyboard" id="keyboard"></div>
       <button id="check-btn" onclick="checkPassword()">▶ START</button>
       <div id="feedback" class="hidden"></div>
+    </div>
+
+    <!-- Levels view -->
+    <div id="levelsView">
+      <div class="levels-header">📋 LEVEL ÜBERSICHT</div>
+      <div class="levels-scroll">
+        <div class="level-card">
+          <div class="level-card-title">Level 1 – Gelber Vielfraß</div>
+          <div class="level-card-desc">Findet das Spiel mit der gelben Figur Pac-Man, die sich durch ein Labyrinth frisst. Schaut genau hin: Wie viele Geister jagen Pac-Man?</div>
+        </div>
+        <div class="level-card">
+          <div class="level-card-title">Level 2 – Seifenblasen</div>
+          <div class="level-card-desc">Findet das Spiel mit den Seifenblasen. Schafft es zusammen, dass 1 Minute lang keine Seifenblase den Boden berührt. Wenn ihr es geschafft habt, bekommt ihr den nächsten Level Code.</div>
+        </div>
+        <div class="level-card">
+          <div class="level-card-title">Level 3 – Die Wackelfedern</div>
+          <div class="level-card-desc">Manche Spiele haben keine normalen Knöpfe zum Steuern. Findet das Spiel mit den komischen Wackelfedern. Zählt genau: Wie viele Wackelfedern gibt es dort?</div>
+        </div>
+        <div class="level-card">
+          <div class="level-card-title">Level 4 – Komponisten</div>
+          <div class="level-card-desc">Komponiert alle zusammen ein Lied am blauen Leuchttisch. Spielt es vor, um den nächsten Level Code zu erhalten.</div>
+        </div>
+        <div class="level-card">
+          <div class="level-card-title">Level 5 – Steine rollen</div>
+          <div class="level-card-desc">Findet das Spiel mit dem großen Ball als Steuer. Schafft es, den Stein ins Ziel zu rollen. Wenn das nicht gelingt, sammelt mindestens 20 Edelsteine. Das Geburtstagskind steuert, die anderen helfen mit Zurufen oder zählen die gesammelten Edelsteine.</div>
+        </div>
+        <div class="level-card">
+          <div class="level-card-title">Level 6 – Rakete</div>
+          <div class="level-card-desc">Findet das Spiel mit der Rakete und den Fußpedalen. Steuert die Rakete zu fünft gemeinsam auf die blaue Plattform.</div>
+        </div>
+        <div class="level-card">
+          <div class="level-card-title">Level 7 – Mosaik</div>
+          <div class="level-card-desc">Sucht das Mosaik von einem Geist. Schaut ganz genau hin: Aus was besteht dieses Mosaik?</div>
+        </div>
+        <div class="level-card">
+          <div class="level-card-title">Level 8 – Die Kreisfahrer</div>
+          <div class="level-card-desc">Hier kann man nichts steuern und alle fahren nur auf dem Boden im Kreis. Findet das passende Spiel. Zählt genau: Wie viele Fahrzeuge fahren immer im Kreis?</div>
+        </div>
+      </div>
+      <button class="levels-back-btn" onclick="toggleLevels()">◀ ZURÜCK</button>
     </div>
   </div>
 
@@ -618,6 +742,11 @@
   function restartBootSequence() {
     // Close video overlay if open
     closeVideo();
+    // Close levels view if open
+    levelsOpen = false;
+    document.getElementById('levelsView').classList.remove('visible');
+    document.getElementById('lvl-btn').classList.remove('active');
+    document.getElementById('bootContent').style.display = '';
     // Clear any entered code
     current = '';
     updateSlots();
@@ -635,9 +764,7 @@
     document.querySelectorAll('.stick').forEach(el => {
       el.addEventListener('click', triggerBootAnimation);
     });
-    document.querySelectorAll('.dpad-btn').forEach(el => {
-      el.addEventListener('click', triggerBootAnimation);
-    });
+
     document.querySelectorAll('.fb').forEach(el => {
       el.addEventListener('click', triggerBootAnimation);
     });
@@ -789,6 +916,26 @@
     video2.currentTime = 0;
     video2.classList.remove('active');
     video2.controls = false;
+  }
+
+  // ── Levels toggle ──
+  let levelsOpen = false;
+  function toggleLevels() {
+    // Only allow if boot animation has played
+    if (!bootAnimationStarted) { triggerBootAnimation(); return; }
+    levelsOpen = !levelsOpen;
+    const lv = document.getElementById('levelsView');
+    const bc2 = document.getElementById('bootContent');
+    const btn = document.getElementById('lvl-btn');
+    if (levelsOpen) {
+      bc2.style.display = 'none';
+      lv.classList.add('visible');
+      btn.classList.add('active');
+    } else {
+      lv.classList.remove('visible');
+      bc2.style.display = '';
+      btn.classList.remove('active');
+    }
   }
 
   // Confetti
