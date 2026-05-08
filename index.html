@@ -607,7 +607,7 @@
 <div id="video-overlay">
   <div id="overlay-title">🎮 Super, ihr habt es geschafft! Folgt dem Pfeil 🎮</div>
   <div id="video-container">
-    <video id="video-1" class="treasure-video" controls autoplay muted playsinline>
+    <video id="video-1" class="treasure-video" controls muted playsinline preload="none">
       <source src="video1_h264.mp4" type="video/mp4" />
       Dein Browser kann dieses Video nicht abspielen.
     </video>
@@ -630,7 +630,7 @@
 
   // Monitor video 1 time to start crossfade 0.5s before end
   video1.addEventListener('timeupdate', function() {
-    if (!crossfadeStarted && video1.duration && video1.currentTime >= video1.duration - 0.5) {
+    if (!crossfadeStarted && video1.duration > 1 && video1.currentTime > 1 && video1.currentTime >= video1.duration - 0.5) {
       crossfadeStarted = true;
       // Start video 2 and fade it in
       video2.currentTime = 0;
